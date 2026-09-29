@@ -14,7 +14,7 @@ class PatenteValidator
     /**
      * Normaliza la patente: mayúsculas, sin espacios ni guiones.
      */
-    private static function normalizar(string $patente): string
+    public static function normalizar(string $patente): string
     {
         $patente = strtoupper(trim($patente));
         return str_replace([' ', '-'], '', $patente);
