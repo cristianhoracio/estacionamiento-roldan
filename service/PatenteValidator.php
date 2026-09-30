@@ -1,15 +1,20 @@
 <?php
 
+require_once __DIR__ . '/../model/TipoVehiculo.php';
+
 class PatenteValidator
 {
-    // Formato viejo: 3 letras + 3 números (ej: ABC123)
+    // ABC123 (auto, camioneta y moto)
     private const FORMATO_VIEJO = '/^[A-Z]{3}[0-9]{3}$/';
 
-    // Formato Mercosur: 2 letras + 3 números + 2 letras (ej: AB123CD)
+    // A123BCD (solo moto)
+    private const FORMATO_NUEVO = '/^[A-Z][0-9]{3}[A-Z]{3}$/';
+
+    // AB123CD (solo auto y camioneta)
     private const FORMATO_MERCOSUR = '/^[A-Z]{2}[0-9]{3}[A-Z]{2}$/';
 
-    // Provisoria: alfanumérico, sin patrón fijo, entre 6 y 10 caracteres
-    private const FORMATO_PROVISORIO = '/^[A-Z0-9]{6,10}$/';
+    // ABC1234 (solo auto y camioneta)
+    private const FORMATO_PROVISORIO = '/^[A-Z]{3}[0-9]{4}$/';
 
     /**
      * Normaliza la patente: mayúsculas, sin espacios ni guiones.
@@ -21,34 +26,57 @@ class PatenteValidator
     }
 
     /**
-     * Valida si la patente cumple con alguno de los 3 formatos aceptados.
+     * Formatos permitidos según el tipo de vehículo.
      */
-    public static function esValida(string $patente): bool
+    private static function formatosPara(string $tipoVehiculo): array
     {
-        $patente = self::normalizar($patente);
-
-        return preg_match(self::FORMATO_VIEJO, $patente) === 1
-            || preg_match(self::FORMATO_MERCOSUR, $patente) === 1
-            || preg_match(self::FORMATO_PROVISORIO, $patente) === 1;
+        if ($tipoVehiculo === TipoVehiculo::MOTO) {
+            return [
+                'viejo' => self::FORMATO_VIEJO,
+                'nuevo' => self::FORMATO_NUEVO,
+            ];
+        }
+        if ($tipoVehiculo === TipoVehiculo::AUTO || $tipoVehiculo === TipoVehiculo::CAMIONETA) {
+            return [
+                'viejo'      => self::FORMATO_VIEJO,
+                'mercosur'   => self::FORMATO_MERCOSUR,
+                'provisorio' => self::FORMATO_PROVISORIO,
+            ];
+        }
+        return [];
     }
 
     /**
-     * Devuelve qué tipo de formato coincide (útil para logs o debug).
-     * Retorna null si no coincide con ninguno.
+     * Valida la patente según el tipo de vehículo.
      */
-    public static function tipoFormato(string $patente): ?string
+    public static function esValida(string $patente, string $tipoVehiculo): bool
+    {
+        return self::tipoFormato($patente, $tipoVehiculo) !== null;
+    }
+
+    /**
+     * Devuelve qué formato coincide ('viejo', 'nuevo', 'mercosur', 'provisorio')
+     * o null si no coincide con ninguno de los permitidos para ese tipo.
+     */
+    public static function tipoFormato(string $patente, string $tipoVehiculo): ?string
     {
         $patente = self::normalizar($patente);
 
-        if (preg_match(self::FORMATO_VIEJO, $patente) === 1) {
-            return 'viejo';
-        }
-        if (preg_match(self::FORMATO_MERCOSUR, $patente) === 1) {
-            return 'mercosur';
-        }
-        if (preg_match(self::FORMATO_PROVISORIO, $patente) === 1) {
-            return 'provisorio';
+        foreach (self::formatosPara($tipoVehiculo) as $nombre => $regex) {
+            if (preg_match($regex, $patente) === 1) {
+                return $nombre;
+            }
         }
         return null;
+    }
+
+    /**
+     * Ejemplos de formatos válidos, para mostrar en el mensaje de error.
+     */
+    public static function ejemplos(string $tipoVehiculo): string
+    {
+        return $tipoVehiculo === TipoVehiculo::MOTO
+            ? 'ABC123 o A123BCD'
+            : 'ABC123, AB123CD o ABC1234';
     }
 }
