@@ -24,11 +24,15 @@ class AlojamientoService{
         if ($patente === '') {
             throw new InvalidArgumentException('Ingresá la patente del vehículo.');
         }
-        if (!PatenteValidator::esValida($patente)) {
-            throw new InvalidArgumentException('La patente no tiene un formato válido (ej: ABC123, AB123CD o provisoria).');
-        }
+        // Primero el tipo: el formato de patente válido depende de él.
         if (!TipoVehiculo::esValido($dto->getTipoVehiculo())) {
             throw new InvalidArgumentException('Seleccioná el tipo de vehículo.');
+        }
+        if (!PatenteValidator::esValida($patente, $dto->getTipoVehiculo())) {
+            throw new InvalidArgumentException(
+                'La patente no tiene un formato válido para este tipo de vehículo (ej: '
+                . PatenteValidator::ejemplos($dto->getTipoVehiculo()) . ').'
+            );
         }
         if ($this->alojamientoRepository->existePatenteActiva($patente)) {
             throw new InvalidArgumentException("El vehículo {$patente} ya tiene un ingreso activo.");
